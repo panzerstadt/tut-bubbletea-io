@@ -9,16 +9,15 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const url = "https://charm.sh/"
-
 type model struct {
+	url    string
 	status int
 	err    error
 }
 
-func checkServer() tea.Msg {
+func (m model) checkServer() tea.Msg {
 	c := &http.Client{Timeout: 10 * time.Second}
-	res, err := c.Get(url)
+	res, err := c.Get(m.url)
 
 	if err != nil {
 		return errMsg{err}
@@ -34,7 +33,7 @@ type errMsg struct{ err error }
 func (e errMsg) Error() string { return e.err.Error() }
 
 func (m model) Init() tea.Cmd {
-	return checkServer
+	return m.checkServer
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -66,7 +65,7 @@ func (m model) View() string {
 		return fmt.Sprintf("\nWe had some trouble: %v\n\n", m.err)
 	}
 
-	s := fmt.Sprintf("Checking %s ... ", url)
+	s := fmt.Sprintf("Checking %s ... ", m.url)
 
 	// when the server responds with a status, add it to line
 	if m.status > 0 {
@@ -77,7 +76,15 @@ func (m model) View() string {
 }
 
 func main() {
-	if _, err := tea.NewProgram(model{}).Run(); err != nil {
+	var initialModel model
+
+	if len(os.Args) > 1 {
+		initialModel.url = os.Args[1]
+	} else {
+		initialModel.url = "https://charm.sh/"
+	}
+
+	if _, err := tea.NewProgram(initialModel).Run(); err != nil {
 		fmt.Printf("Uh oh, there as an error: %v\n", err)
 		os.Exit(1)
 	}
